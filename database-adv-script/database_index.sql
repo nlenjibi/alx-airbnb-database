@@ -31,3 +31,39 @@ CREATE INDEX IF NOT EXISTS idx_property_images_property ON property_images(prope
 -- Notes:
 -- - Create indexes selectively and test with EXPLAIN/ANALYZE; indexes speed up reads but add write overhead.
 -- - Consider composite indexes when queries filter on multiple columns in combination (e.g. property_id + check_in).
+
+-- ---------------------------------------------------------------------------
+-- Measurement guidance: run these steps to measure before/after index impact.
+-- 1) Baseline (before applying indexes): run EXPLAIN or EXPLAIN ANALYZE on a representative query.
+--    Replace the SELECT below with a query that matches your workload.
+--
+-- Example baseline query (run BEFORE applying indexes):
+-- EXPLAIN ANALYZE
+-- SELECT b.id, b.check_in, b.check_out, b.total_price, u.email, p.title
+-- FROM bookings b
+-- JOIN users u ON b.guest_id = u.id
+-- JOIN properties p ON b.property_id = p.id
+-- WHERE b.check_in >= DATE '2025-01-01' AND b.check_in < DATE '2026-01-01';
+--
+-- 2) Apply the indexes in this file (run this file or the CREATE INDEX statements above).
+--    Example (psql): psql -d yourdb -f database-adv-script/database_index.sql
+--
+-- 3) Re-run the same EXPLAIN ANALYZE (AFTER applying indexes) and compare results.
+--    Look for changes from SEQ SCAN to INDEX SCAN, lower 'actual time' and fewer rows scanned.
+--
+-- Quick psql workflow (PowerShell example):
+-- ```powershell
+-- # Baseline
+-- psql -d yourdb -c "EXPLAIN ANALYZE SELECT b.id, b.check_in, b.check_out, b.total_price, u.email, p.title FROM bookings b JOIN users u ON b.guest_id = u.id JOIN properties p ON b.property_id = p.id WHERE b.check_in >= DATE '2025-01-01' AND b.check_in < DATE '2026-01-01';"
+-- 
+-- # Apply indexes
+-- psql -d yourdb -f database-adv-script/database_index.sql
+-- 
+-- # After
+-- psql -d yourdb -c "EXPLAIN ANALYZE SELECT b.id, b.check_in, b.check_out, b.total_price, u.email, p.title FROM bookings b JOIN users u ON b.guest_id = u.id JOIN properties p ON b.property_id = p.id WHERE b.check_in >= DATE '2025-01-01' AND b.check_in < DATE '2026-01-01';"
+-- ```
+--
+-- Additional tips:
+-- - Use EXPLAIN (no ANALYZE) first to inspect the plan without running the query.
+-- - For repeatable measurements, run `SET client_min_messages = WARNING;` to suppress extra output and run the query multiple times to average.
+-- - Consider running on a warm cache (run the query once then measure) and on a cold cache to see worst-case performance.
